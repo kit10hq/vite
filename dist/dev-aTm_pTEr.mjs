@@ -79,7 +79,8 @@ const server = await createServer({
 	plugins: [
 		configPlugin(),
 		templatePlugin(),
-		devRoutePlugin()
+		devRoutePlugin(),
+		...config.plugins ?? []
 	],
 	server: { port: config.server?.port }
 });

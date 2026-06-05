@@ -6,7 +6,7 @@ type CssPreprocessors = Exclude<
 	undefined
 >['preprocessorOptions'];
 
-// type Plugin = VitePlugin | Kit10Plugin;
+type Plugins = Exclude<UserConfig['plugins'], undefined>;
 
 export const is_prod: boolean = process.argv[2] === 'build';
 
@@ -16,7 +16,7 @@ const configModule = await import(
 
 export type Config = {
 	/** List of plugins to use. */
-	// plugins?: Plugin[];
+	plugins?: Plugins;
 	/** Build options. */
 	build?: {
 		/** If file size is within this threshold, it will be inlined into page. */

@@ -68,6 +68,7 @@ await build({
 	plugins: [
 		configPlugin(),
 		templatePlugin(),
+		...config.plugins ?? [],
 		gzipPlugin()
 	],
 	build: {

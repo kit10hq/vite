@@ -32,7 +32,12 @@ await build({
 	root: buildOptions.source_path,
 	configFile: false,
 	appType: 'custom',
-	plugins: [configPlugin(), templatePlugin(), gzipPlugin()],
+	plugins: [
+		configPlugin(),
+		templatePlugin(),
+		...(buildOptions.config.plugins ?? []),
+		gzipPlugin(),
+	],
 	build: {
 		outDir: buildOptions.output_static_path,
 		emptyOutDir: true,

@@ -8,7 +8,12 @@ const server = await createServer({
 	root: buildOptions.source_path,
 	configFile: false,
 	appType: 'custom',
-	plugins: [configPlugin(), templatePlugin(), devRoutePlugin()],
+	plugins: [
+		configPlugin(),
+		templatePlugin(),
+		devRoutePlugin(),
+		...(buildOptions.config.plugins ?? []),
+	],
 	server: {
 		port: buildOptions.config.server?.port,
 	},
