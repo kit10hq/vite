@@ -12,3 +12,5 @@ if (command === 'dev') {
 	console.error(`Unknown command "${command ?? ''}".`);
 	process.exit(1);
 }
+
+export type { Config } from './build/options.js';

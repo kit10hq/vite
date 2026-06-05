@@ -1,4 +1,4 @@
-import { a as config, c as source_path, i as rewriteHtml, r as getRoutes, t as templatePlugin } from "./template-D4jJYclZ.mjs";
+import { a as configPlugin, i as rewriteHtml, l as source_path, o as config, r as getRoutes, t as templatePlugin } from "./template-CresvizA.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { createServer } from "vite";
@@ -76,7 +76,11 @@ const server = await createServer({
 	root: source_path,
 	configFile: false,
 	appType: "custom",
-	plugins: [templatePlugin(), devRoutePlugin()],
+	plugins: [
+		configPlugin(),
+		templatePlugin(),
+		devRoutePlugin()
+	],
 	server: { port: config.server?.port }
 });
 await server.listen();

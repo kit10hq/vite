@@ -1,6 +1,12 @@
 import nodePath from 'node:path';
-// import { cssPlugin } from './build/plugins/css.js';
-// import type { Plugin } from './build/plugins.js';
+import type { UserConfig, Plugin as VitePlugin } from 'vite';
+
+type CssPreprocessors = Exclude<
+	UserConfig['css'],
+	undefined
+>['preprocessorOptions'];
+
+// type Plugin = VitePlugin | Kit10Plugin;
 
 export const is_prod: boolean = process.argv[2] === 'build';
 
@@ -15,6 +21,7 @@ export type Config = {
 	build?: {
 		/** If file size is within this threshold, it will be inlined into page. */
 		html_inline_threshold?: number;
+		css_preprocessors?: CssPreprocessors;
 	};
 	/** Server options. */
 	server?: {
@@ -23,8 +30,6 @@ export type Config = {
 	};
 };
 export const config = configModule.default as Config;
-// config.plugins ??= [];
-// config.plugins.push(cssPlugin);
 
 export const source_path: string = nodePath.join(process.cwd(), 'src');
 

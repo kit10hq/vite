@@ -10,6 +10,17 @@ const source_path = nodePath.join(process.cwd(), "src");
 const output_path = nodePath.join(process.cwd(), "dist");
 const output_static_path = nodePath.join(output_path, "static");
 //#endregion
+//#region src/build/plugins/config.ts
+/** Configures the Vite plugin that updates Vite config. */
+function configPlugin() {
+	return {
+		name: "kit10:config",
+		config() {
+			return { css: { preprocessorOptions: config.build?.css_preprocessors } };
+		}
+	};
+}
+//#endregion
 //#region src/utils.ts
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -311,4 +322,4 @@ function templatePlugin() {
 	};
 }
 //#endregion
-export { config as a, source_path as c, rewriteHtml as i, routes as n, output_path as o, getRoutes as r, output_static_path as s, templatePlugin as t };
+export { configPlugin as a, output_static_path as c, rewriteHtml as i, source_path as l, routes as n, config as o, getRoutes as r, output_path as s, templatePlugin as t };

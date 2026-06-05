@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import nodePath from 'node:path';
 import { build } from 'vite';
 import * as buildOptions from '../options.js';
+import { configPlugin } from '../plugins/config.js';
 import { gzipPlugin } from '../plugins/gzip.js';
 import { templatePlugin } from '../plugins/template.js';
 import { routes } from '../router.js';
@@ -31,7 +32,7 @@ await build({
 	root: buildOptions.source_path,
 	configFile: false,
 	appType: 'custom',
-	plugins: [templatePlugin(), gzipPlugin()],
+	plugins: [configPlugin(), templatePlugin(), gzipPlugin()],
 	build: {
 		outDir: buildOptions.output_static_path,
 		emptyOutDir: true,

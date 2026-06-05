@@ -1,4 +1,4 @@
-import { a as config, c as source_path, n as routes, o as output_path, s as output_static_path, t as templatePlugin } from "./template-D4jJYclZ.mjs";
+import { a as configPlugin, c as output_static_path, l as source_path, n as routes, o as config, s as output_path, t as templatePlugin } from "./template-CresvizA.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { build } from "vite";
@@ -65,7 +65,11 @@ await build({
 	root: source_path,
 	configFile: false,
 	appType: "custom",
-	plugins: [templatePlugin(), gzipPlugin()],
+	plugins: [
+		configPlugin(),
+		templatePlugin(),
+		gzipPlugin()
+	],
 	build: {
 		outDir: output_static_path,
 		emptyOutDir: true,
