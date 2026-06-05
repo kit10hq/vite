@@ -1,13 +1,20 @@
+import fs from 'node:fs/promises';
 import nodePath from 'node:path';
 import { build, createServer } from 'vite';
 import * as buildOptions from './build/options.js';
 import { templatePlugin } from './build/plugins/template.js';
-import { getRoutes } from './build/router/file-tree.js';
+import { routes } from './build/router.js';
 
 if (buildOptions.is_prod) {
-	// throw new Error('Cannot build in production mode.');
+	await fs.rm(buildOptions.output_path, { recursive: true, force: true });
+	await fs.cp(
+		nodePath.join(import.meta.dirname, '..', 'template', 'hono'),
+		buildOptions.output_path,
+		{
+			recursive: true,
+		},
+	);
 
-	const routes = getRoutes();
 	const input: Record<string, string> = {};
 	for (const route_data of routes) {
 		const name = nodePath
@@ -38,6 +45,9 @@ if (buildOptions.is_prod) {
 			},
 		},
 	});
+
+	const { makeServer } = await import('./build/server.js');
+	await makeServer();
 } else {
 	const { devRoutePlugin } = await import('./build/plugins/dev-route.js');
 	const server = await createServer({

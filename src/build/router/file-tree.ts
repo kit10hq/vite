@@ -29,7 +29,7 @@ type WalkStateFile = {
 	specificity: WalkSpecificity;
 };
 type WalkState = WalkStateDir | WalkStateFile;
-type RouteData = {
+export type RouteData = {
 	route: string;
 	file: RouteFile;
 };

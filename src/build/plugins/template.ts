@@ -1,14 +1,9 @@
 import nodePath from 'node:path';
-import { HTMLRewriter } from 'html-rewriter-wasm';
-import type { IndexHtmlTransformContext, Plugin } from 'vite';
-import {
-	isAbsoluteOrSpecialPath,
-	textDecoder,
-	textEncoder,
-} from '../../utils.js';
+import type { Plugin } from 'vite';
 import { rewriteHtml } from '../html.js';
 import * as buildOptions from '../options.js';
-import { getRoutes } from '../router/file-tree.js';
+import { getRoutes, type RouteData } from '../router/file-tree.js';
+import { routes } from '../router.js';
 import {
 	readTemplate,
 	splitTemplate,
@@ -19,15 +14,15 @@ import {
 /**
  * Returns a set of all routed paths.
  */
-function getRoutedPaths(): Set<string> {
+function getRoutedPaths(routes_: RouteData[]): Set<string> {
 	return new Set(
-		getRoutes().map((route_data) => nodePath.resolve(route_data.file.path)),
+		routes_.map((route_data) => nodePath.resolve(route_data.file.path)),
 	);
 }
 
 /** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
 export function templatePlugin(): Plugin {
-	let routed_paths = getRoutedPaths();
+	let routed_paths = getRoutedPaths(routes);
 	let template: TemplateParts | null = null;
 
 	return {
@@ -37,7 +32,7 @@ export function templatePlugin(): Plugin {
 			order: 'pre',
 			async handler(html, context) {
 				if (!buildOptions.is_prod) {
-					routed_paths = getRoutedPaths();
+					routed_paths = getRoutedPaths(getRoutes());
 				}
 
 				if (!routed_paths.has(context.filename)) {

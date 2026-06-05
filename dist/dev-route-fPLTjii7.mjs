@@ -1,6 +1,7 @@
-import { c as source_path, n as rewriteHtml, t as getRoutes } from "./file-tree-BqJ97cVo.mjs";
-import nodePath from "node:path";
+import { o as source_path, t as getRoutes } from "./file-tree-Dl6oXx4j.mjs";
+import { t as rewriteHtml } from "./html-B10SbTTp.mjs";
 import fs from "node:fs/promises";
+import nodePath from "node:path";
 import { Hono } from "hono/tiny";
 //#region src/build/plugins/dev-route.ts
 /** Creates a Vite plugin that serves the application's routes using Hono. */

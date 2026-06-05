@@ -1,9 +1,11 @@
-import { a as config, c as source_path, i as textEncoder, n as rewriteHtml, o as is_prod, r as textDecoder, s as output_static_path, t as getRoutes } from "./file-tree-BqJ97cVo.mjs";
+import { a as output_static_path, i as output_path, n as config, o as source_path, r as is_prod, t as getRoutes } from "./file-tree-Dl6oXx4j.mjs";
+import { n as textDecoder, r as textEncoder, t as rewriteHtml } from "./html-B10SbTTp.mjs";
+import { t as routes } from "./router-W326qal1.mjs";
+import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { build, createServer } from "vite";
 import { HTMLRewriter } from "html-rewriter-wasm";
 import { randomUUID } from "node:crypto";
-import fs from "node:fs/promises";
 //#region src/build/template.ts
 const TEMPLATE_PATH = "+template.html";
 const TEMPLATE_PATH_ABSOLUTE = nodePath.join(source_path, TEMPLATE_PATH);
@@ -46,12 +48,12 @@ function splitTemplate(html) {
 /**
 * Returns a set of all routed paths.
 */
-function getRoutedPaths() {
-	return new Set(getRoutes().map((route_data) => nodePath.resolve(route_data.file.path)));
+function getRoutedPaths(routes_) {
+	return new Set(routes_.map((route_data) => nodePath.resolve(route_data.file.path)));
 }
 /** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
 function templatePlugin() {
-	let routed_paths = getRoutedPaths();
+	let routed_paths = getRoutedPaths(routes);
 	let template = null;
 	return {
 		name: "kit10:template",
@@ -59,7 +61,7 @@ function templatePlugin() {
 		transformIndexHtml: {
 			order: "pre",
 			async handler(html, context) {
-				if (!is_prod) routed_paths = getRoutedPaths();
+				if (!is_prod) routed_paths = getRoutedPaths(getRoutes());
 				if (!routed_paths.has(context.filename)) return;
 				const rewrite = rewriteHtml(context.filename, html);
 				html = rewrite.html;
@@ -78,7 +80,11 @@ function templatePlugin() {
 //#endregion
 //#region src/build.ts
 if (is_prod) {
-	const routes = getRoutes();
+	await fs.rm(output_path, {
+		recursive: true,
+		force: true
+	});
+	await fs.cp(nodePath.join(import.meta.dirname, "..", "template", "hono"), output_path, { recursive: true });
 	const input = {};
 	for (const route_data of routes) {
 		const name = nodePath.relative(source_path, route_data.file.path).replace(/\+page\.[a-z\d]+/u, "").replaceAll("/", "_").replaceAll("[", "(").replaceAll("]", ")");
@@ -103,8 +109,10 @@ if (is_prod) {
 			}
 		}
 	});
+	const { makeServer } = await import("./server-Dnq6EPXX.mjs");
+	await makeServer();
 } else {
-	const { devRoutePlugin } = await import("./dev-route-1Pee1kzp.mjs");
+	const { devRoutePlugin } = await import("./dev-route-fPLTjii7.mjs");
 	const server = await createServer({
 		root: source_path,
 		configFile: false,
