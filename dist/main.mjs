@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 //#region src/main.ts
 const command = process.argv[2];
-if (command === "dev" || command === "build") await import("./build-CjbQFCKg.mjs");
+if (command === "dev" || command === "build") await import("./build-BI8jZmR-.mjs");
 else {
 	process.stderr.write(`Unknown command "${command ?? ""}". Use "dev" or "build".\n`);
 	process.exit(1);

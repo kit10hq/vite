@@ -2,6 +2,17 @@ import { i as source_path, t as getRoutes } from "./file-tree-DVp0VADH.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { Hono } from "hono/tiny";
+import { HTMLRewriter } from "html-rewriter-wasm";
+//#region src/utils.ts
+/**
+* Returns whether a path already has non-relative behavior.
+* @param path -
+* @returns -
+*/
+function isAbsoluteOrSpecialPath(path) {
+	return path.startsWith("/") || path.startsWith("#") || path.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.test(path);
+}
+//#endregion
 //#region src/build/plugins/route.ts
 /** Creates a Vite plugin that serves the application's routes using Hono. */
 function routePlugin() {
@@ -14,7 +25,7 @@ function routePlugin() {
 				const url_pathname = new URL(context.req.url).pathname;
 				const source = await fs.readFile(route_data.file.path);
 				const html = await server.transformIndexHtml("/" + nodePath.relative(source_path, route_data.file.path), source.toString("utf8"), url_pathname);
-				return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+				return new Response(rewriteHtml(route_data.file.path, html), { headers: { "Content-Type": "text/html; charset=utf-8" } });
 			});
 			return () => {
 				server.middlewares.use(async (request, response, next) => {
@@ -59,6 +70,42 @@ function convertHeaders(headers_node) {
 		else headers.set(name, String(value));
 	}
 	return headers;
+}
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+/**
+* Rewrites html.
+* @param path - The relative file path of the html file.
+* @param contents - The html to rewrite.
+* @returns -
+*/
+function rewriteHtml(path, contents) {
+	const dir = nodePath.dirname(path);
+	let result = "";
+	const rewriter = new HTMLRewriter((chunk) => {
+		result += textDecoder.decode(chunk);
+	});
+	rewriter.on("img,script", { element(node) {
+		const import_path = node.getAttribute("src");
+		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
+	} });
+	rewriter.on("link", { element(node) {
+		const import_path = node.getAttribute("href");
+		if (import_path) node.setAttribute("href", absolutePath(dir, import_path));
+	} });
+	rewriter.write(textEncoder.encode(contents));
+	rewriter.end();
+	return result;
+}
+/**
+* Converts a relative path to absolute.
+* @param dir - The directory of the file.
+* @param path - The relative path to convert.
+* @returns -
+*/
+function absolutePath(dir, path) {
+	if (isAbsoluteOrSpecialPath(path)) return path;
+	return nodePath.normalize(nodePath.join(dir, path)).replace(source_path, "");
 }
 //#endregion
 export { routePlugin };

@@ -5,7 +5,7 @@ import { createServer } from "vite";
 //#region src/build.ts
 if (is_prod) throw new Error("Cannot build in production mode.");
 else {
-	const { routePlugin } = await import("./route-QSnb-3X5.mjs");
+	const { routePlugin } = await import("./route-DdV9Bwpp.mjs");
 	const server = await createServer({
 		root: source_path,
 		configFile: false,

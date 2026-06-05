@@ -1,13 +1,13 @@
 /**
- * Returns whether a URL already has non-relative behavior.
- * @param url URL.
- * @returns Whether the URL should be left as-is.
+ * Returns whether a path already has non-relative behavior.
+ * @param path -
+ * @returns -
  */
-export function isAbsoluteOrSpecialUrl(url: string): boolean {
+export function isAbsoluteOrSpecialPath(path: string): boolean {
 	return (
-		url.startsWith('/')
-		|| url.startsWith('#')
-		|| url.startsWith('//')
-		|| /^[a-z][a-z\d+.-]*:/iu.test(url)
+		path.startsWith('/')
+		|| path.startsWith('#')
+		|| path.startsWith('//')
+		|| /^[a-z][a-z\d+.-]*:/iu.test(path)
 	);
 }

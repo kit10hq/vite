@@ -16,7 +16,7 @@ if (buildOptions.is_prod) {
 	// 		emptyOutDir: true,
 	// 		manifest: true,
 	// 		rolldownOptions: {
-	// 			input: createHtmlInputs(file_routes),
+	// 			input: createHtmlInputs(),
 	// 		},
 	// 	},
 	// });
