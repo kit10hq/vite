@@ -3,11 +3,12 @@
 // oxlint-disable unicorn/no-process-exit
 
 const command: string | undefined = process.argv[2];
-if (command === 'dev' || command === 'build') {
-	await import('./build.js');
+if (command === 'dev') {
+	await import('./build/target/dev.js');
+} else if (command === 'build') {
+	await import('./build/target/build.js');
 } else {
-	process.stderr.write(
-		`Unknown command "${command ?? ''}". Use "dev" or "build".\n`,
-	);
+	// oxlint-disable-next-line no-console
+	console.error(`Unknown command "${command ?? ''}".`);
 	process.exit(1);
 }
