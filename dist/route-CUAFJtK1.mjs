@@ -1,18 +1,8 @@
-import { a as source_path, t as getRoutes } from "./file-tree-nmDbMldM.mjs";
-import nodePath from "node:path";
+import { a as getRoutes, c as source_path, i as isAbsoluteOrSpecialPath, n as readTemplate, r as splitTemplate, t as TEMPLATE_PATH_ABSOLUTE } from "./template-CxwtrCs-.mjs";
 import fs from "node:fs/promises";
-import { Hono } from "hono/tiny";
+import nodePath from "node:path";
 import { HTMLRewriter } from "html-rewriter-wasm";
-//#region src/utils.ts
-/**
-* Returns whether a path already has non-relative behavior.
-* @param path -
-* @returns -
-*/
-function isAbsoluteOrSpecialPath(path) {
-	return path.startsWith("/") || path.startsWith("#") || path.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.test(path);
-}
-//#endregion
+import { Hono } from "hono/tiny";
 //#region src/build/plugins/route.ts
 /** Creates a Vite plugin that serves the application's routes using Hono. */
 function routePlugin() {
@@ -23,9 +13,17 @@ function routePlugin() {
 			const app = new Hono();
 			for (const route_data of routes) app.get(route_data.route, async (context) => {
 				const url_pathname = new URL(context.req.url).pathname;
-				const source = await fs.readFile(route_data.file.path);
-				const html = await server.transformIndexHtml("/" + nodePath.relative(source_path, route_data.file.path), source.toString("utf8"), url_pathname);
-				return new Response(rewriteHtml(route_data.file.path, html), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+				let html = await fs.readFile(route_data.file.path, "utf8");
+				html = await server.transformIndexHtml("/" + nodePath.relative(source_path, route_data.file.path), html, url_pathname);
+				const rewrite = rewriteHtml(route_data.file.path, html);
+				html = rewrite.html;
+				if (rewrite.is_full_page) return htmlResponse(html);
+				let template_html = await readTemplate();
+				if (!template_html) return htmlResponse(html);
+				template_html = await server.transformIndexHtml(TEMPLATE_PATH_ABSOLUTE, template_html, url_pathname);
+				template_html = rewriteHtml(TEMPLATE_PATH_ABSOLUTE, template_html).html;
+				const template = splitTemplate(template_html);
+				return htmlResponse(template.start + html + template.end);
 			});
 			return () => {
 				server.middlewares.use(async (request, response, next) => {
@@ -57,6 +55,14 @@ function routePlugin() {
 	};
 }
 /**
+* Creates HTML response.
+* @param contents -
+* @returns -
+*/
+function htmlResponse(contents) {
+	return new Response(contents, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+/**
 * Converts Node request headers to WebAPI's Headers.
 * @param headers_node -
 * @returns -
@@ -82,10 +88,18 @@ const textDecoder = new TextDecoder();
 function rewriteHtml(path, contents) {
 	const dir = nodePath.dirname(path);
 	let result = "";
+	let is_full_page;
 	const rewriter = new HTMLRewriter((chunk) => {
 		result += textDecoder.decode(chunk);
 	});
-	rewriter.on("img,script", { element(node) {
+	rewriter.on("*", { element(node) {
+		is_full_page ??= node.tagName === "html";
+	} });
+	rewriter.on("img", { element(node) {
+		const import_path = node.getAttribute("src");
+		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
+	} });
+	rewriter.on("script", { element(node) {
 		const import_path = node.getAttribute("src");
 		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
 	} });
@@ -95,7 +109,10 @@ function rewriteHtml(path, contents) {
 	} });
 	rewriter.write(textEncoder.encode(contents));
 	rewriter.end();
-	return result;
+	return {
+		is_full_page: is_full_page ?? false,
+		html: result
+	};
 }
 /**
 * Converts a relative path to absolute.
@@ -104,6 +121,7 @@ function rewriteHtml(path, contents) {
 * @returns -
 */
 function absolutePath(dir, path) {
+	console.log("absolutePath", dir, path);
 	if (isAbsoluteOrSpecialPath(path)) return path;
 	return nodePath.normalize(nodePath.join(dir, path)).replace(source_path, "");
 }

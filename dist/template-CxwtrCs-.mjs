@@ -1,5 +1,8 @@
+import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { HTMLRewriter } from "html-rewriter-wasm";
 //#region src/build/options.ts
 const is_prod = process.argv[2] === "build";
 const config = (await import(nodePath.join(process.cwd(), "kit10.config.js"))).default;
@@ -174,4 +177,54 @@ function sortRoutes(result) {
 	});
 }
 //#endregion
-export { source_path as a, output_path as i, config as n, is_prod as r, getRoutes as t };
+//#region src/utils.ts
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+/**
+* Returns whether a path already has non-relative behavior.
+* @param path -
+* @returns -
+*/
+function isAbsoluteOrSpecialPath(path) {
+	return path.startsWith("/") || path.startsWith("#") || path.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.test(path);
+}
+//#endregion
+//#region src/build/template.ts
+const TEMPLATE_PATH = "+template.html";
+const TEMPLATE_PATH_ABSOLUTE = nodePath.join(source_path, TEMPLATE_PATH);
+/**
+* Reads the +template.html file from the source path, if it exists.
+* @returns - The contents of the template file, or `undefined` if it does not exist.
+*/
+async function readTemplate() {
+	try {
+		await fs.access(TEMPLATE_PATH_ABSOLUTE);
+		return fs.readFile(TEMPLATE_PATH_ABSOLUTE, "utf8");
+	} catch {
+		return null;
+	}
+}
+/**
+* Splits +template.html file into parts to place page contents in between.
+* @returns -
+*/
+function splitTemplate(html) {
+	const placeholder = `<!--kit10:${randomUUID()}-->`;
+	let result = "";
+	const rewriter = new HTMLRewriter((chunk) => {
+		result += textDecoder.decode(chunk);
+	});
+	rewriter.on("kit10\\:page", { element(element) {
+		element.replace(placeholder, { html: true });
+	} });
+	rewriter.write(textEncoder.encode(html));
+	rewriter.end();
+	const parts = result.split(placeholder);
+	if (parts.length !== 2) throw new Error(`${TEMPLATE_PATH} must contain exactly one <kit10:page></kit10:page>.`);
+	return {
+		start: parts[0],
+		end: parts[1]
+	};
+}
+//#endregion
+export { getRoutes as a, source_path as c, isAbsoluteOrSpecialPath as i, readTemplate as n, config as o, splitTemplate as r, is_prod as s, TEMPLATE_PATH_ABSOLUTE as t };

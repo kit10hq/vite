@@ -7,9 +7,14 @@ import type { Plugin } from 'vite';
 import { isAbsoluteOrSpecialPath } from '../../utils.js';
 import * as buildOptions from '../options.js';
 import { getRoutes } from '../router/file-tree.js';
+import {
+	readTemplate,
+	splitTemplate,
+	TEMPLATE_PATH_ABSOLUTE,
+} from '../template.js';
 
 /** Creates a Vite plugin that serves the application's routes using Hono. */
-export function routePlugin(): Plugin {
+export function devRoutePlugin(): Plugin {
 	return {
 		name: 'kit10:routes',
 		configureServer(server) {
@@ -19,22 +24,42 @@ export function routePlugin(): Plugin {
 			for (const route_data of routes) {
 				app.get(route_data.route, async (context) => {
 					const url_pathname = new URL(context.req.url).pathname;
-					const source = await fs.readFile(route_data.file.path);
-					const html = await server.transformIndexHtml(
+
+					let html = await fs.readFile(route_data.file.path, 'utf8');
+					html = await server.transformIndexHtml(
 						'/'
 							+ nodePath.relative(
 								buildOptions.source_path,
 								route_data.file.path,
 							),
-						source.toString('utf8'),
+						html,
 						url_pathname,
 					);
+					const rewrite = rewriteHtml(route_data.file.path, html);
+					html = rewrite.html;
 
-					return new Response(rewriteHtml(route_data.file.path, html), {
-						headers: {
-							'Content-Type': 'text/html; charset=utf-8',
-						},
-					});
+					if (rewrite.is_full_page) {
+						return htmlResponse(html);
+					}
+
+					let template_html = await readTemplate();
+					if (!template_html) {
+						return htmlResponse(html);
+					}
+
+					template_html = await server.transformIndexHtml(
+						TEMPLATE_PATH_ABSOLUTE,
+						template_html,
+						url_pathname,
+					);
+					template_html = rewriteHtml(
+						TEMPLATE_PATH_ABSOLUTE,
+						template_html,
+					).html;
+
+					const template = splitTemplate(template_html);
+
+					return htmlResponse(template.start + html + template.end);
 				});
 			}
 
@@ -85,6 +110,19 @@ export function routePlugin(): Plugin {
 }
 
 /**
+ * Creates HTML response.
+ * @param contents -
+ * @returns -
+ */
+function htmlResponse(contents: string): Response {
+	return new Response(contents, {
+		headers: {
+			'Content-Type': 'text/html; charset=utf-8',
+		},
+	});
+}
+
+/**
  * Converts Node request headers to WebAPI's Headers.
  * @param headers_node -
  * @returns -
@@ -120,27 +158,31 @@ const textDecoder = new TextDecoder();
  * @param contents - The html to rewrite.
  * @returns -
  */
-function rewriteHtml(path: string, contents: string): string {
+function rewriteHtml(path: string, contents: string) {
 	const dir = nodePath.dirname(path);
 
 	let result = '';
+	let is_full_page;
 	const rewriter = new HTMLRewriter((chunk) => {
 		result += textDecoder.decode(chunk);
 	});
 
-	// let tag_content = '';
-	// rewriter.on('*', {
-	// 	element() {
-	// 		tag_content = '';
-	// 	},
-	// 	text(node) {
-	// 		if (node.text) {
-	// 			tag_content += node.text;
-	// 		}
-	// 	},
-	// });
+	rewriter.on('*', {
+		element(node) {
+			is_full_page ??= node.tagName === 'html';
+		},
+	});
 
-	rewriter.on('img,script', {
+	rewriter.on('img', {
+		element(node) {
+			const import_path = node.getAttribute('src');
+			if (import_path) {
+				node.setAttribute('src', absolutePath(dir, import_path));
+			}
+		},
+	});
+
+	rewriter.on('script', {
 		element(node) {
 			const import_path = node.getAttribute('src');
 			if (import_path) {
@@ -161,7 +203,10 @@ function rewriteHtml(path: string, contents: string): string {
 	rewriter.write(textEncoder.encode(contents));
 	rewriter.end();
 
-	return result;
+	return {
+		is_full_page: is_full_page ?? false,
+		html: result,
+	};
 }
 
 /**
@@ -171,6 +216,8 @@ function rewriteHtml(path: string, contents: string): string {
  * @returns -
  */
 function absolutePath(dir: string, path: string): string {
+	console.log('absolutePath', dir, path);
+
 	if (isAbsoluteOrSpecialPath(path)) {
 		return path;
 	}

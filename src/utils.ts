@@ -1,3 +1,6 @@
+export const textEncoder: InstanceType<typeof TextEncoder> = new TextEncoder();
+export const textDecoder: InstanceType<typeof TextDecoder> = new TextDecoder();
+
 /**
  * Returns whether a path already has non-relative behavior.
  * @param path -
