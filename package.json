@@ -1,0 +1,55 @@
+{
+	"name": "@kit10/vite",
+	"version": "0.1.0-dev",
+	"description": "",
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"bin": "./dist/main.mjs",
+	"exports": {
+		".": {
+			"types": "./dist/main.d.mts",
+			"import": "./dist/main.mjs"
+		}
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"dependencies": {
+		"hono": "4.12.23",
+		"html-rewriter-wasm": "0.4.1",
+		"vite": "8.0.16"
+	},
+	"optionalDependencies": {
+		"@hono/node-server": "2.0.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.10",
+		"@kirick/lint": "0.3.2",
+		"@types/node": "^22.15.13",
+		"eslint": "10.2.0",
+		"oxlint": "1.58.0",
+		"publint": "0.3.21",
+		"tsdown": "0.22.0",
+		"typescript": "6.0.2",
+		"unplugin-unused": "0.5.7"
+	},
+	"scripts": {
+		"build": "tsdown src/main.ts --unused --dts --format esm",
+		"check": "bun run lint && bun run build",
+		"lint": "biome format && oxlint && eslint . && tsc",
+		"pack": "bun run check && dev pack create"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/kit10hq/vite.git"
+	},
+	"keywords": [],
+	"author": "Daniil Kirichenko (https://twitter.com/kirickme)",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/kit10hq/vite/issues"
+	},
+	"homepage": "https://github.com/kit10hq/vite#readme"
+}
