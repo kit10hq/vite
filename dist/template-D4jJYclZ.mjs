@@ -1,11 +1,73 @@
+import fs from "node:fs/promises";
 import nodePath from "node:path";
+import { HTMLRewriter } from "html-rewriter-wasm";
 import { readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 //#region src/build/options.ts
 const is_prod = process.argv[2] === "build";
 const config = (await import(nodePath.join(process.cwd(), "kit10.config.js"))).default;
 const source_path = nodePath.join(process.cwd(), "src");
 const output_path = nodePath.join(process.cwd(), "dist");
 const output_static_path = nodePath.join(output_path, "static");
+//#endregion
+//#region src/utils.ts
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+/**
+* Returns whether a path already has non-relative behavior.
+* @param path -
+* @returns -
+*/
+function isAbsoluteOrSpecialPath(path) {
+	return path.startsWith("/") || path.startsWith("#") || path.startsWith("//") || /^[a-z][a-z\d+.-]*:/iu.test(path);
+}
+//#endregion
+//#region src/build/html.ts
+/**
+* Rewrites html.
+* @param path - The absolute file path of the html file.
+* @param contents - The html to rewrite.
+* @returns -
+*/
+function rewriteHtml(path, contents) {
+	const dir = nodePath.dirname(path);
+	let result = "";
+	let first_tag_name;
+	const rewriter = new HTMLRewriter((chunk) => {
+		result += textDecoder.decode(chunk);
+	});
+	rewriter.on("*", { element(node) {
+		first_tag_name ??= node.tagName.toLowerCase();
+	} });
+	rewriter.on("img", { element(node) {
+		const import_path = node.getAttribute("src");
+		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
+	} });
+	rewriter.on("script", { element(node) {
+		const import_path = node.getAttribute("src");
+		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
+	} });
+	rewriter.on("link", { element(node) {
+		const import_path = node.getAttribute("href");
+		if (import_path) node.setAttribute("href", absolutePath(dir, import_path));
+	} });
+	rewriter.write(textEncoder.encode(contents));
+	rewriter.end();
+	return {
+		is_full_page: first_tag_name === "html",
+		html: result
+	};
+}
+/**
+* Converts a relative path to absolute.
+* @param dir - The directory of the file.
+* @param path - The relative path to convert.
+* @returns -
+*/
+function absolutePath(dir, path) {
+	if (isAbsoluteOrSpecialPath(path)) return path;
+	return nodePath.normalize(nodePath.join(dir, path)).replace(source_path, "");
+}
 //#endregion
 //#region src/build/router/filename.ts
 const RE_ENTRYPOINT = /^(?<name>.+)\+page\.(?<ext>[a-z]+)$/iu;
@@ -174,4 +236,79 @@ function sortRoutes(result) {
 	});
 }
 //#endregion
-export { output_static_path as a, output_path as i, config as n, source_path as o, is_prod as r, getRoutes as t };
+//#region src/build/router.ts
+const routes = getRoutes();
+//#endregion
+//#region src/build/template.ts
+const TEMPLATE_PATH = "+template.html";
+const TEMPLATE_PATH_ABSOLUTE = nodePath.join(source_path, TEMPLATE_PATH);
+/**
+* Reads the +template.html file from the source path, if it exists.
+* @returns - The contents of the template file, or `undefined` if it does not exist.
+*/
+async function readTemplate() {
+	try {
+		await fs.access(TEMPLATE_PATH_ABSOLUTE);
+		return fs.readFile(TEMPLATE_PATH_ABSOLUTE, "utf8");
+	} catch {
+		return null;
+	}
+}
+/**
+* Splits +template.html file into parts to place page contents in between.
+* @returns -
+*/
+function splitTemplate(html) {
+	const placeholder = `<!--kit10:${randomUUID()}-->`;
+	let result = "";
+	const rewriter = new HTMLRewriter((chunk) => {
+		result += textDecoder.decode(chunk);
+	});
+	rewriter.on("kit10\\:page", { element(element) {
+		element.replace(placeholder, { html: true });
+	} });
+	rewriter.write(textEncoder.encode(html));
+	rewriter.end();
+	const parts = result.split(placeholder);
+	if (parts.length !== 2) throw new Error(`${TEMPLATE_PATH} must contain exactly one <kit10:page></kit10:page>.`);
+	return {
+		start: parts[0],
+		end: parts[1]
+	};
+}
+//#endregion
+//#region src/build/plugins/template.ts
+/**
+* Returns a set of all routed paths.
+*/
+function getRoutedPaths(routes_) {
+	return new Set(routes_.map((route_data) => nodePath.resolve(route_data.file.path)));
+}
+/** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
+function templatePlugin() {
+	let routed_paths = getRoutedPaths(routes);
+	let template = null;
+	return {
+		name: "kit10:template",
+		enforce: "pre",
+		transformIndexHtml: {
+			order: "pre",
+			async handler(html, context) {
+				if (!is_prod) routed_paths = getRoutedPaths(getRoutes());
+				if (!routed_paths.has(context.filename)) return;
+				const rewrite = rewriteHtml(context.filename, html);
+				html = rewrite.html;
+				if (rewrite.is_full_page) return html;
+				if (!template || !is_prod) {
+					let template_html = await readTemplate();
+					if (template_html === null) throw new Error(`Requested template, but ${TEMPLATE_PATH_ABSOLUTE} not found.`);
+					template_html = rewriteHtml(TEMPLATE_PATH_ABSOLUTE, template_html).html;
+					template = splitTemplate(template_html);
+				}
+				return template.start + html + template.end;
+			}
+		}
+	};
+}
+//#endregion
+export { config as a, source_path as c, rewriteHtml as i, routes as n, output_path as o, getRoutes as r, output_static_path as s, templatePlugin as t };

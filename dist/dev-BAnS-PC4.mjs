@@ -1,7 +1,7 @@
-import { o as source_path, t as getRoutes } from "./file-tree-Dl6oXx4j.mjs";
-import { t as rewriteHtml } from "./html-B10SbTTp.mjs";
+import { a as config, c as source_path, i as rewriteHtml, r as getRoutes, t as templatePlugin } from "./template-D4jJYclZ.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
+import { createServer } from "vite";
 import { Hono } from "hono/tiny";
 //#region src/build/plugins/dev-route.ts
 /** Creates a Vite plugin that serves the application's routes using Hono. */
@@ -71,4 +71,15 @@ function convertHeaders(headers_node) {
 	return headers;
 }
 //#endregion
-export { devRoutePlugin };
+//#region src/build/target/dev.ts
+const server = await createServer({
+	root: source_path,
+	configFile: false,
+	appType: "custom",
+	plugins: [templatePlugin(), devRoutePlugin()],
+	server: { port: config.server?.port }
+});
+await server.listen();
+server.printUrls();
+//#endregion
+export {};
