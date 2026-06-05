@@ -174,4 +174,4 @@ function sortRoutes(result) {
 	});
 }
 //#endregion
-export { source_path as i, config as n, is_prod as r, getRoutes as t };
+export { source_path as a, output_path as i, config as n, is_prod as r, getRoutes as t };
