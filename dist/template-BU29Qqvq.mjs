@@ -44,11 +44,22 @@ function rewriteHtml(path, contents) {
 	const dir = nodePath.dirname(path);
 	let result = "";
 	let first_tag_name;
+	let is_kit10_head = false;
+	let kit10_head = "";
 	const rewriter = new HTMLRewriter((chunk) => {
-		result += textDecoder.decode(chunk);
+		const chunk_string = textDecoder.decode(chunk);
+		if (is_kit10_head) kit10_head += chunk_string;
+		else result += chunk_string;
 	});
-	rewriter.on("*", { element(node) {
-		first_tag_name ??= node.tagName.toLowerCase();
+	rewriter.on("*", { element(element) {
+		first_tag_name ??= element.tagName.toLowerCase();
+	} });
+	rewriter.on("kit10\\:head", { element(element) {
+		is_kit10_head = true;
+		element.removeAndKeepContent();
+		element.onEndTag(() => {
+			is_kit10_head = false;
+		});
 	} });
 	rewriter.on("img", { element(node) {
 		const import_path = node.getAttribute("src");
@@ -66,6 +77,7 @@ function rewriteHtml(path, contents) {
 	rewriter.end();
 	return {
 		is_full_page: first_tag_name === "html",
+		kit10_head,
 		html: result
 	};
 }
@@ -270,22 +282,39 @@ async function readTemplate() {
 * @returns -
 */
 function splitTemplate(html) {
-	const placeholder = `<!--kit10:${randomUUID()}-->`;
+	const placeholder_head = `<!--${randomUUID()}-->`;
+	const placeholder_page = `<!--${randomUUID()}-->`;
 	let result = "";
 	const rewriter = new HTMLRewriter((chunk) => {
 		result += textDecoder.decode(chunk);
 	});
+	rewriter.on("head", { element(element) {
+		element.append(placeholder_head, { html: true });
+	} });
 	rewriter.on("kit10\\:page", { element(element) {
-		element.replace(placeholder, { html: true });
+		element.replace(placeholder_page, { html: true });
 	} });
 	rewriter.write(textEncoder.encode(html));
 	rewriter.end();
-	const parts = result.split(placeholder);
-	if (parts.length !== 2) throw new Error(`${TEMPLATE_PATH} must contain exactly one <kit10:page></kit10:page>.`);
+	const parts_by_head = result.split(placeholder_head);
+	if (parts_by_head.length !== 2) throw new Error(`Internal error: can not split ${TEMPLATE_PATH} by head comment.`);
+	const before_head = parts_by_head[0];
+	const parts_by_page = parts_by_head[1].split(placeholder_page);
+	if (parts_by_page.length !== 2) throw new Error(`${TEMPLATE_PATH} must contain exactly one <kit10:page> tag.`);
 	return {
-		start: parts[0],
-		end: parts[1]
+		before_head,
+		before_page: parts_by_page[0],
+		after_page: parts_by_page[1]
 	};
+}
+/**
+* Wraps the HTML content in the template parts.
+* @param templateParts - The template parts to wrap the HTML content in.
+* @param htmlContent - The HTML content to wrap.
+* @returns The wrapped HTML content.
+*/
+function wrapInTemplate(templateParts, htmlContent) {
+	return templateParts.before_head + htmlContent.kit10_head + templateParts.before_page + htmlContent.html + templateParts.after_page;
 }
 //#endregion
 //#region src/build/plugins/template.ts
@@ -298,7 +327,7 @@ function getRoutedPaths(routes_) {
 /** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
 function templatePlugin() {
 	let routed_paths = getRoutedPaths(routes);
-	let template = null;
+	let templateParts = null;
 	return {
 		name: "kit10:template",
 		enforce: "pre",
@@ -307,16 +336,16 @@ function templatePlugin() {
 			async handler(html, context) {
 				if (!is_prod) routed_paths = getRoutedPaths(getRoutes());
 				if (!routed_paths.has(context.filename)) return;
-				const rewrite = rewriteHtml(context.filename, html);
-				html = rewrite.html;
-				if (rewrite.is_full_page) return html;
-				if (!template || !is_prod) {
+				const htmlContent = rewriteHtml(context.filename, html);
+				html = htmlContent.html;
+				if (htmlContent.is_full_page) return html;
+				if (!templateParts || !is_prod) {
 					let template_html = await readTemplate();
 					if (template_html === null) throw new Error(`Requested template, but ${TEMPLATE_PATH_ABSOLUTE} not found.`);
 					template_html = rewriteHtml(TEMPLATE_PATH_ABSOLUTE, template_html).html;
-					template = splitTemplate(template_html);
+					templateParts = splitTemplate(template_html);
 				}
-				return template.start + html + template.end;
+				return wrapInTemplate(templateParts, htmlContent);
 			}
 		}
 	};

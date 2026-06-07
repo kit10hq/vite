@@ -3,27 +3,47 @@ import { HTMLRewriter } from 'html-rewriter-wasm';
 import { isAbsoluteOrSpecialPath, textDecoder, textEncoder } from '../utils.js';
 import * as buildOptions from './options.js';
 
+export type HtmlContent = {
+	is_full_page: boolean;
+	kit10_head: string;
+	html: string;
+};
+
 /**
  * Rewrites html.
  * @param path - The absolute file path of the html file.
  * @param contents - The html to rewrite.
  * @returns -
  */
-export function rewriteHtml(
-	path: string,
-	contents: string,
-): { is_full_page: boolean; html: string } {
+export function rewriteHtml(path: string, contents: string): HtmlContent {
 	const dir = nodePath.dirname(path);
 
 	let result = '';
 	let first_tag_name;
+	let is_kit10_head = false;
+	let kit10_head = '';
 	const rewriter = new HTMLRewriter((chunk) => {
-		result += textDecoder.decode(chunk);
+		const chunk_string = textDecoder.decode(chunk);
+		if (is_kit10_head) {
+			kit10_head += chunk_string;
+		} else {
+			result += chunk_string;
+		}
 	});
 
 	rewriter.on('*', {
-		element(node) {
-			first_tag_name ??= node.tagName.toLowerCase();
+		element(element) {
+			first_tag_name ??= element.tagName.toLowerCase();
+		},
+	});
+
+	rewriter.on('kit10\\:head', {
+		element(element) {
+			is_kit10_head = true;
+			element.removeAndKeepContent();
+			element.onEndTag(() => {
+				is_kit10_head = false;
+			});
 		},
 	});
 
@@ -59,6 +79,7 @@ export function rewriteHtml(
 
 	return {
 		is_full_page: first_tag_name === 'html',
+		kit10_head,
 		html: result,
 	};
 }

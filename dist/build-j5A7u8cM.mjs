@@ -1,4 +1,4 @@
-import { a as configPlugin, c as output_static_path, l as source_path, n as routes, o as config, s as output_path, t as templatePlugin } from "./template-CresvizA.mjs";
+import { a as configPlugin, c as output_static_path, l as source_path, n as routes, o as config, s as output_path, t as templatePlugin } from "./template-BU29Qqvq.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { build } from "vite";

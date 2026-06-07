@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 //#region src/main.ts
 const command = process.argv[2];
-if (command === "dev") await import("./dev-aTm_pTEr.mjs");
-else if (command === "build") await import("./build-Cv9ZcgjX.mjs");
+if (command === "dev") await import("./dev-ZnrZsk2-.mjs");
+else if (command === "build") await import("./build-j5A7u8cM.mjs");
 else {
 	console.error(`Unknown command "${command ?? ""}".`);
 	process.exit(1);

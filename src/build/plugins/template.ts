@@ -9,6 +9,7 @@ import {
 	splitTemplate,
 	TEMPLATE_PATH_ABSOLUTE,
 	type TemplateParts,
+	wrapInTemplate,
 } from '../template.js';
 
 /**
@@ -23,7 +24,7 @@ function getRoutedPaths(routes_: RouteData[]): Set<string> {
 /** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
 export function templatePlugin(): Plugin {
 	let routed_paths = getRoutedPaths(routes);
-	let template: TemplateParts | null = null;
+	let templateParts: TemplateParts | null = null;
 
 	return {
 		name: 'kit10:template',
@@ -39,13 +40,13 @@ export function templatePlugin(): Plugin {
 					return;
 				}
 
-				const rewrite = rewriteHtml(context.filename, html);
-				html = rewrite.html;
-				if (rewrite.is_full_page) {
+				const htmlContent = rewriteHtml(context.filename, html);
+				html = htmlContent.html;
+				if (htmlContent.is_full_page) {
 					return html;
 				}
 
-				if (!template || !buildOptions.is_prod) {
+				if (!templateParts || !buildOptions.is_prod) {
 					let template_html = await readTemplate();
 					if (template_html === null) {
 						throw new Error(
@@ -59,10 +60,10 @@ export function templatePlugin(): Plugin {
 					).html;
 
 					// eslint-disable-next-line require-atomic-updates
-					template = splitTemplate(template_html);
+					templateParts = splitTemplate(template_html);
 				}
 
-				return template.start + html + template.end;
+				return wrapInTemplate(templateParts, htmlContent);
 			},
 		},
 	};

@@ -1,4 +1,4 @@
-import { a as configPlugin, i as rewriteHtml, l as source_path, o as config, r as getRoutes, t as templatePlugin } from "./template-CresvizA.mjs";
+import { a as configPlugin, i as rewriteHtml, l as source_path, o as config, r as getRoutes, t as templatePlugin } from "./template-BU29Qqvq.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { createServer } from "vite";
