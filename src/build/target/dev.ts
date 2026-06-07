@@ -14,9 +14,6 @@ const server = await createServer({
 		devRoutePlugin(),
 		...buildOptions.vitePlugins,
 	],
-	server: {
-		port: buildOptions.config.server?.port,
-	},
 });
 
 await server.listen();

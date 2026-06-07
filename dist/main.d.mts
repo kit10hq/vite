@@ -1,10 +1,11 @@
 import { Plugin, UserConfig } from "vite";
 
 //#region src/build/options.d.ts
+type Promisable<T> = T | Promise<T>;
 type CssPreprocessors = Exclude<UserConfig["css"], undefined>["preprocessorOptions"];
 type Kit10Plugin = {
   kit10: true;
-  htmlPreprocessors?: unknown[];
+  htmlPreprocessor?: (path: string) => Promisable<string>;
   vitePlugins?: Plugin[];
 };
 type Config = {

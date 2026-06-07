@@ -13,9 +13,7 @@ await fs.rm(buildOptions.output_path, { recursive: true, force: true });
 await fs.cp(
 	nodePath.join(import.meta.dirname, '..', 'template', 'hono'),
 	buildOptions.output_path,
-	{
-		recursive: true,
-	},
+	{ recursive: true },
 );
 
 const input: Record<string, string> = {};

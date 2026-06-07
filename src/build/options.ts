@@ -1,13 +1,14 @@
 import nodePath from 'node:path';
 import type { UserConfig, Plugin as VitePlugin } from 'vite';
 
+type Promisable<T> = T | Promise<T>;
 type CssPreprocessors = Exclude<
 	UserConfig['css'],
 	undefined
 >['preprocessorOptions'];
 export type Kit10Plugin = {
 	kit10: true;
-	htmlPreprocessors?: unknown[];
+	htmlPreprocessor?: (path: string) => Promisable<string>;
 	vitePlugins?: VitePlugin[];
 };
 

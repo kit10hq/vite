@@ -1,4 +1,4 @@
-import { a as configPlugin, i as rewriteHtml, l as source_path, o as config, r as getRoutes, t as templatePlugin, u as vitePlugins } from "./template-BOxwdz7N.mjs";
+import { a as configPlugin, i as rewriteHtml, l as source_path, r as getRoutes, t as templatePlugin, u as vitePlugins } from "./template-BOxwdz7N.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { createServer } from "vite";
@@ -81,8 +81,7 @@ const server = await createServer({
 		templatePlugin(),
 		devRoutePlugin(),
 		...vitePlugins
-	],
-	server: { port: config.server?.port }
+	]
 });
 await server.listen();
 server.printUrls();
