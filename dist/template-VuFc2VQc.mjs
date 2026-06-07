@@ -6,10 +6,12 @@ import { randomUUID } from "node:crypto";
 //#region src/build/options.ts
 const is_prod = process.argv[2] === "build";
 const config = (await import(nodePath.join(process.cwd(), "kit10.config.js"))).default;
-const vitePlugins = config.plugins ? config.plugins.map((plugin) => {
-	if (plugin && "kit10" in plugin) return plugin.vitePlugins;
-	return plugin;
-}) : [];
+const vitePlugins = [];
+const kit10HtmlPreprocessors = [];
+if (config.plugins) for (const plugin of config.plugins) if (plugin && "kit10" in plugin) {
+	if (plugin.htmlPreprocessor) kit10HtmlPreprocessors.push(plugin.htmlPreprocessor);
+	if (plugin.vitePlugins) vitePlugins.push(...plugin.vitePlugins);
+} else vitePlugins.push(plugin);
 const source_path = nodePath.join(process.cwd(), "src");
 const output_path = nodePath.join(process.cwd(), "dist");
 const output_static_path = nodePath.join(output_path, "static");
@@ -321,12 +323,89 @@ function wrapInTemplate(templateParts, htmlContent) {
 	return templateParts.before_head + htmlContent.kit10_head + templateParts.before_page + htmlContent.html + templateParts.after_page;
 }
 //#endregion
+//#region src/build/plugins/virtual-html.ts
+const RE_EXTENSION = /\.[^.]+$/u;
+const virtualHtmlFiles = /* @__PURE__ */ new Map();
+/** Returns the virtual HTML path for a route source file. */
+function getRouteHtmlPath(file) {
+	if (file.ext === "html") return file.path;
+	return file.path.replace(RE_EXTENSION, ".html");
+}
+/** Returns the dev/build URL for a route HTML file. */
+function getRouteHtmlUrl(path) {
+	return "/" + nodePath.relative(source_path, path);
+}
+/** Loads route HTML, preprocessing non-HTML route files into virtual HTML. */
+async function loadRouteHtml(file) {
+	if (file.ext === "html") return {
+		html: await fs.readFile(file.path, "utf8"),
+		path: file.path
+	};
+	const preprocessor = getHtmlPreprocessor(file.path);
+	const path = getRouteHtmlPath(file);
+	const html = await preprocessor.transform(file.path);
+	virtualHtmlFiles.set(getVirtualHtmlKey(path), html);
+	return {
+		html,
+		path
+	};
+}
+/** Preprocesses build routes and rewrites non-HTML routes to their virtual HTML files. */
+async function preprocessBuildRoutes(routes) {
+	const route_html_results = await Promise.all(routes.map(async (route_data) => {
+		if (route_data.file.ext === "html") return null;
+		return {
+			route_data,
+			route_html: await loadRouteHtml(route_data.file)
+		};
+	}));
+	for (const route_html_result of route_html_results) {
+		if (route_html_result === null) continue;
+		route_html_result.route_data.file.path = route_html_result.route_html.path;
+		route_html_result.route_data.file.ext = "html";
+	}
+}
+/** Creates a Vite plugin that serves generated virtual HTML files. */
+function virtualHtmlPlugin() {
+	return {
+		name: "kit10:virtual-html",
+		enforce: "pre",
+		resolveId(id) {
+			const key = getVirtualHtmlKey(id);
+			if (virtualHtmlFiles.has(key)) return key;
+		},
+		load(id) {
+			return virtualHtmlFiles.get(getVirtualHtmlKey(id));
+		}
+	};
+}
+/** Returns the single HTML preprocessor matching a source file. */
+function getHtmlPreprocessor(path) {
+	const preprocessors = kit10HtmlPreprocessors.filter((preprocessor) => matchesFilter(preprocessor.filter, path));
+	if (preprocessors.length === 0) throw new Error(`No Kit10 HTML preprocessor matched "${path}". Add a plugin that can transform ".${nodePath.extname(path).slice(1)}" pages to HTML.`);
+	if (preprocessors.length > 1) throw new Error(`Multiple Kit10 HTML preprocessors matched "${path}". Make plugin filters mutually exclusive.`);
+	return preprocessors[0];
+}
+/** Returns whether a regular expression matches without leaking lastIndex state. */
+function matchesFilter(filter, path) {
+	filter.lastIndex = 0;
+	return filter.test(path);
+}
+/** Returns a stable key for virtual HTML file lookups. */
+function getVirtualHtmlKey(path) {
+	return normalizePath(nodePath.resolve(path.replace(/[?#].*$/u, "")));
+}
+/** Normalizes file paths for Vite/Rollup ids. */
+function normalizePath(path) {
+	return path.replaceAll(nodePath.win32.sep, "/");
+}
+//#endregion
 //#region src/build/plugins/template.ts
 /**
 * Returns a set of all routed paths.
 */
 function getRoutedPaths(routes_) {
-	return new Set(routes_.map((route_data) => nodePath.resolve(route_data.file.path)));
+	return new Set(routes_.map((route_data) => nodePath.resolve(getRouteHtmlPath(route_data.file))));
 }
 /** Creates a Vite plugin that wraps route HTML fragments with +template.html. */
 function templatePlugin() {
@@ -355,4 +434,4 @@ function templatePlugin() {
 	};
 }
 //#endregion
-export { configPlugin as a, output_static_path as c, rewriteHtml as i, source_path as l, routes as n, config as o, getRoutes as r, output_path as s, templatePlugin as t, vitePlugins as u };
+export { virtualHtmlPlugin as a, rewriteHtml as c, output_path as d, output_static_path as f, preprocessBuildRoutes as i, configPlugin as l, vitePlugins as m, getRouteHtmlUrl as n, routes as o, source_path as p, loadRouteHtml as r, getRoutes as s, templatePlugin as t, config as u };

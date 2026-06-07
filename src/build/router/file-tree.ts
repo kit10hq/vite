@@ -9,7 +9,7 @@ export enum WalkSpecificityType {
 	PARAMETER_OPTIONAL = 2,
 	CATCH_ALL = 3,
 }
-type RouteFile = {
+export type RouteFile = {
 	path: string;
 	ext: string;
 };

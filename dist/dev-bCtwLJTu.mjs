@@ -1,6 +1,4 @@
-import { a as configPlugin, i as rewriteHtml, l as source_path, r as getRoutes, t as templatePlugin, u as vitePlugins } from "./template-DWzkI-bW.mjs";
-import fs from "node:fs/promises";
-import nodePath from "node:path";
+import { a as virtualHtmlPlugin, c as rewriteHtml, l as configPlugin, m as vitePlugins, n as getRouteHtmlUrl, p as source_path, r as loadRouteHtml, s as getRoutes, t as templatePlugin } from "./template-VuFc2VQc.mjs";
 import { createServer } from "vite";
 import { Hono } from "hono/tiny";
 //#region src/build/plugins/dev-route.ts
@@ -13,9 +11,10 @@ function devRoutePlugin() {
 			const app = new Hono();
 			for (const route_data of routes) app.get(route_data.route, async (context) => {
 				const url_pathname = new URL(context.req.url).pathname;
-				let html = await fs.readFile(route_data.file.path, "utf8");
-				html = await server.transformIndexHtml("/" + nodePath.relative(source_path, route_data.file.path), html, url_pathname);
-				html = rewriteHtml(route_data.file.path, html).html;
+				const route_html = await loadRouteHtml(route_data.file);
+				let { html } = route_html;
+				html = await server.transformIndexHtml(getRouteHtmlUrl(route_html.path), html, url_pathname);
+				html = rewriteHtml(route_html.path, html).html;
 				return htmlResponse(html);
 			});
 			return () => {
@@ -78,6 +77,7 @@ const server = await createServer({
 	appType: "custom",
 	plugins: [
 		configPlugin(),
+		virtualHtmlPlugin(),
 		templatePlugin(),
 		devRoutePlugin(),
 		...vitePlugins

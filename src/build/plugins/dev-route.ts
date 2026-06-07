@@ -1,11 +1,9 @@
-import fs from 'node:fs/promises';
 import type { OutgoingHttpHeaders } from 'node:http2';
-import nodePath from 'node:path';
 import { Hono } from 'hono/tiny';
 import type { Plugin } from 'vite';
 import { rewriteHtml } from '../html.js';
-import * as buildOptions from '../options.js';
 import { getRoutes } from '../router/file-tree.js';
+import { getRouteHtmlUrl, loadRouteHtml } from './virtual-html.js';
 
 /** Creates a Vite plugin that serves the application's routes using Hono. */
 export function devRoutePlugin(): Plugin {
@@ -18,18 +16,15 @@ export function devRoutePlugin(): Plugin {
 			for (const route_data of routes) {
 				app.get(route_data.route, async (context) => {
 					const url_pathname = new URL(context.req.url).pathname;
+					const route_html = await loadRouteHtml(route_data.file);
 
-					let html = await fs.readFile(route_data.file.path, 'utf8');
+					let { html } = route_html;
 					html = await server.transformIndexHtml(
-						'/'
-							+ nodePath.relative(
-								buildOptions.source_path,
-								route_data.file.path,
-							),
+						getRouteHtmlUrl(route_html.path),
 						html,
 						url_pathname,
 					);
-					const rewrite = rewriteHtml(route_data.file.path, html);
+					const rewrite = rewriteHtml(route_html.path, html);
 					html = rewrite.html;
 
 					return htmlResponse(html);

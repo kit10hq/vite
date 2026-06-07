@@ -4,12 +4,13 @@ import { UserConfig } from "vite";
 type Promisable<T> = T | Promise<T>;
 type CssPreprocessors = Exclude<UserConfig["css"], undefined>["preprocessorOptions"];
 type VitePlugin = Exclude<UserConfig["plugins"], undefined>[number];
+type Kit10HtmlPreprocessor = {
+  filter: RegExp;
+  transform: (path: string) => Promisable<string>;
+};
 type Kit10Plugin = {
   kit10: true;
-  htmlPreprocessor?: {
-    filter: RegExp;
-    transform: (path: string) => Promisable<string>;
-  };
+  htmlPreprocessor?: Kit10HtmlPreprocessor;
   vitePlugins?: VitePlugin[];
 };
 type Config = {

@@ -7,7 +7,7 @@ type CssPreprocessors = Exclude<
 	undefined
 >['preprocessorOptions'];
 type VitePlugin = Exclude<UserConfig['plugins'], undefined>[number];
-type Kit10HtmlPreprocessor = {
+export type Kit10HtmlPreprocessor = {
 	filter: RegExp;
 	transform: (path: string) => Promisable<string>;
 };

@@ -6,6 +6,10 @@ import { configPlugin } from '../plugins/config.js';
 import { gzipPlugin } from '../plugins/gzip.js';
 import { htmlMinifyPlugin } from '../plugins/html-minify.js';
 import { templatePlugin } from '../plugins/template.js';
+import {
+	preprocessBuildRoutes,
+	virtualHtmlPlugin,
+} from '../plugins/virtual-html.js';
 import { routes } from '../router.js';
 import { makeServer } from '../server.js';
 
@@ -15,6 +19,8 @@ await fs.cp(
 	buildOptions.output_path,
 	{ recursive: true },
 );
+
+await preprocessBuildRoutes(routes);
 
 const input: Record<string, string> = {};
 for (const route_data of routes) {
@@ -33,6 +39,7 @@ await build({
 	appType: 'custom',
 	plugins: [
 		configPlugin(),
+		virtualHtmlPlugin(),
 		templatePlugin(),
 		...buildOptions.vitePlugins,
 		htmlMinifyPlugin(),

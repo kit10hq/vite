@@ -11,13 +11,16 @@ import {
 	type TemplateParts,
 	wrapInTemplate,
 } from '../template.js';
+import { getRouteHtmlPath } from './virtual-html.js';
 
 /**
  * Returns a set of all routed paths.
  */
 function getRoutedPaths(routes_: RouteData[]): Set<string> {
 	return new Set(
-		routes_.map((route_data) => nodePath.resolve(route_data.file.path)),
+		routes_.map((route_data) =>
+			nodePath.resolve(getRouteHtmlPath(route_data.file)),
+		),
 	);
 }
 
