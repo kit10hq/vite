@@ -4,6 +4,7 @@ import nodePath from "node:path";
 import { build } from "vite";
 import { promisify } from "node:util";
 import zlib from "node:zlib";
+import minifyHtml from "@minify-html/node";
 //#region src/build/plugins/gzip.ts
 const gzip = promisify(zlib.gzip);
 const filter = /\.(?:html|xml|css|json|js|mjs|svg)$/iu;
@@ -39,6 +40,40 @@ async function* walk(dir) {
 	}
 }
 //#endregion
+//#region src/build/plugins/html-minify.ts
+const MINIFY_HTML_OPTIONS = {
+	allow_noncompliant_unquoted_attribute_values: false,
+	allow_optimal_entities: false,
+	allow_removing_spaces_between_attributes: false,
+	keep_closing_tags: false,
+	keep_comments: false,
+	keep_html_and_head_opening_tags: true,
+	keep_input_type_text_attr: true,
+	keep_ssi_comments: false,
+	minify_css: false,
+	minify_doctype: false,
+	minify_js: false,
+	preserve_brace_template_syntax: false,
+	preserve_chevron_percent_template_syntax: false,
+	remove_bangs: true,
+	remove_processing_instructions: true
+};
+/**
+* A Vite plugin that minifies HTML.
+* @param options - The minification options to pass to `@minify-html/node`.
+*/
+function htmlMinifyPlugin(options = MINIFY_HTML_OPTIONS) {
+	return {
+		name: "kit10:html-minify",
+		transformIndexHtml: {
+			order: "post",
+			handler(html) {
+				return minifyHtml.minify(Buffer.from(html), options).toString("utf8");
+			}
+		}
+	};
+}
+//#endregion
 //#region src/build/server.ts
 /** Configures the production server. */
 async function makeServer() {
@@ -69,6 +104,7 @@ await build({
 		configPlugin(),
 		templatePlugin(),
 		...config.plugins ?? [],
+		htmlMinifyPlugin(),
 		gzipPlugin()
 	],
 	build: {

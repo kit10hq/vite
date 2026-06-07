@@ -4,6 +4,7 @@ import { build } from 'vite';
 import * as buildOptions from '../options.js';
 import { configPlugin } from '../plugins/config.js';
 import { gzipPlugin } from '../plugins/gzip.js';
+import { htmlMinifyPlugin } from '../plugins/html-minify.js';
 import { templatePlugin } from '../plugins/template.js';
 import { routes } from '../router.js';
 import { makeServer } from '../server.js';
@@ -36,6 +37,7 @@ await build({
 		configPlugin(),
 		templatePlugin(),
 		...(buildOptions.config.plugins ?? []),
+		htmlMinifyPlugin(),
 		gzipPlugin(),
 	],
 	build: {

@@ -17,6 +17,7 @@
 		"node": ">=22.16"
 	},
 	"dependencies": {
+		"@minify-html/node": "0.18.1",
 		"hono": "4.12.23",
 		"html-rewriter-wasm": "0.4.1",
 		"vite": "8.0.16"
