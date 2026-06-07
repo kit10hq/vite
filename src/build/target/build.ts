@@ -5,6 +5,7 @@ import * as buildOptions from '../options.js';
 import { configPlugin } from '../plugins/config.js';
 import { gzipPlugin } from '../plugins/gzip.js';
 import { htmlMinifyPlugin } from '../plugins/html-minify.js';
+import { jsInlinePlugin } from '../plugins/js-inline.js';
 import { templatePlugin } from '../plugins/template.js';
 import {
 	preprocessBuildRoutes,
@@ -42,6 +43,7 @@ await build({
 		virtualHtmlPlugin(),
 		templatePlugin(),
 		...buildOptions.vitePlugins,
+		jsInlinePlugin(),
 		htmlMinifyPlugin(),
 		gzipPlugin(),
 	],

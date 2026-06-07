@@ -1,4 +1,4 @@
-import { a as virtualHtmlPlugin, c as rewriteHtml, l as configPlugin, m as vitePlugins, n as getRouteHtmlUrl, p as source_path, r as loadRouteHtml, s as getRoutes, t as templatePlugin } from "./template-CEkb4o_w.mjs";
+import { _ as vitePlugins, a as virtualHtmlPlugin, c as rewriteHtml, f as configPlugin, g as source_path, n as getRouteHtmlUrl, r as loadRouteHtml, s as getRoutes, t as templatePlugin } from "./template-Bzai6c8v.mjs";
 import { createServer } from "vite";
 import { Hono } from "hono/tiny";
 //#region src/build/plugins/dev-route.ts

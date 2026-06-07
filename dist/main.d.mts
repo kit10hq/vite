@@ -16,7 +16,7 @@ type Kit10Plugin = {
 type Config = {
   /** List of plugins to use. */plugins?: (Kit10Plugin | VitePlugin)[]; /** Build options. */
   build?: {
-    /** If file size is within this threshold, it will be inlined into page. */html_inline_threshold?: number;
+    /** If JavaScript asset size is within this threshold, it will be inlined into page. */jsInlineTreshold?: number;
     css_preprocessors?: CssPreprocessors;
   }; /** Server options. */
   server?: {
