@@ -1,4 +1,4 @@
-import { a as virtualHtmlPlugin, d as output_path, f as output_static_path, i as preprocessBuildRoutes, l as configPlugin, m as vitePlugins, o as routes, p as source_path, t as templatePlugin, u as config } from "./template-VuFc2VQc.mjs";
+import { a as virtualHtmlPlugin, d as output_path, f as output_static_path, i as preprocessBuildRoutes, l as configPlugin, m as vitePlugins, o as routes, p as source_path, t as templatePlugin, u as config } from "./template-CEkb4o_w.mjs";
 import fs from "node:fs/promises";
 import nodePath from "node:path";
 import { build } from "vite";

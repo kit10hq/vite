@@ -43,7 +43,7 @@ export function templatePlugin(): Plugin {
 					return;
 				}
 
-				const htmlContent = rewriteHtml(context.filename, html);
+				const htmlContent = await rewriteHtml(context.filename, html);
 				html = htmlContent.html;
 				if (htmlContent.is_full_page) {
 					return html;
@@ -57,10 +57,11 @@ export function templatePlugin(): Plugin {
 						);
 					}
 
-					template_html = rewriteHtml(
+					const templateHtmlContent = await rewriteHtml(
 						TEMPLATE_PATH_ABSOLUTE,
 						template_html,
-					).html;
+					);
+					template_html = templateHtmlContent.html;
 
 					// eslint-disable-next-line require-atomic-updates
 					templateParts = splitTemplate(template_html);

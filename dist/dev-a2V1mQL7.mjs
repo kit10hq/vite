@@ -1,4 +1,4 @@
-import { a as virtualHtmlPlugin, c as rewriteHtml, l as configPlugin, m as vitePlugins, n as getRouteHtmlUrl, p as source_path, r as loadRouteHtml, s as getRoutes, t as templatePlugin } from "./template-VuFc2VQc.mjs";
+import { a as virtualHtmlPlugin, c as rewriteHtml, l as configPlugin, m as vitePlugins, n as getRouteHtmlUrl, p as source_path, r as loadRouteHtml, s as getRoutes, t as templatePlugin } from "./template-CEkb4o_w.mjs";
 import { createServer } from "vite";
 import { Hono } from "hono/tiny";
 //#region src/build/plugins/dev-route.ts
@@ -14,7 +14,7 @@ function devRoutePlugin() {
 				const route_html = await loadRouteHtml(route_data.file);
 				let { html } = route_html;
 				html = await server.transformIndexHtml(getRouteHtmlUrl(route_html.path), html, url_pathname);
-				html = rewriteHtml(route_html.path, html).html;
+				html = (await rewriteHtml(route_html.path, html)).html;
 				return htmlResponse(html);
 			});
 			return () => {

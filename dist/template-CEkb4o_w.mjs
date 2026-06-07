@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import nodePath from "node:path";
+import * as esbuild from "esbuild";
 import { HTMLRewriter } from "html-rewriter-wasm";
 import { readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -40,14 +41,48 @@ function isAbsoluteOrSpecialPath(path) {
 }
 //#endregion
 //#region src/build/html.ts
+const inlined = /* @__PURE__ */ new Map();
+const inlined_promises = /* @__PURE__ */ new Map();
+/** Returns a safe value for an HTML attribute. */
+function escapeAttribute(value) {
+	return value.replaceAll("&", "&amp;").replaceAll("\"", "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+/** Does actual bundling of JS/TS file into one. */
+async function bundleDo(path) {
+	const [output] = (await esbuild.build({
+		absWorkingDir: source_path,
+		entryPoints: ["." + path],
+		outdir: "/",
+		bundle: true,
+		format: "esm",
+		minify: is_prod,
+		write: false
+	})).outputFiles;
+	if (!output) throw new Error("No output file");
+	const contents = textDecoder.decode(output.contents);
+	if (is_prod) inlined.set(path, contents);
+	return contents;
+}
+/** Bundles JS/TS file into one. */
+async function bundle(path) {
+	if (!path.startsWith("/")) throw new Error("Path for bundle must be absolute.");
+	if (inlined.has(path)) return inlined.get(path);
+	if (inlined_promises.has(path)) return inlined_promises.get(path);
+	const promise = bundleDo(path);
+	inlined_promises.set(path, promise);
+	const contents = await promise;
+	inlined_promises.delete(path);
+	return contents;
+}
 /**
 * Rewrites html.
 * @param path - The absolute file path of the html file.
 * @param contents - The html to rewrite.
 * @returns -
 */
-function rewriteHtml(path, contents) {
+async function rewriteHtml(path, contents) {
 	const dir = nodePath.dirname(path);
+	const promises = [];
 	let result = "";
 	let first_tag_name;
 	let is_kit10_head = false;
@@ -71,16 +106,33 @@ function rewriteHtml(path, contents) {
 		const import_path = node.getAttribute("src");
 		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
 	} });
-	rewriter.on("script", { element(node) {
-		const import_path = node.getAttribute("src");
-		if (import_path) node.setAttribute("src", absolutePath(dir, import_path));
+	const scripts_to_inline = /* @__PURE__ */ new Map();
+	rewriter.on("script", { element(element) {
+		const import_path = element.getAttribute("src");
+		if (import_path) {
+			element.setAttribute("src", absolutePath(dir, import_path));
+			if (element.getAttribute("kit10:inline") !== null) {
+				const import_path_absolute = absolutePath(dir, import_path);
+				promises.push(bundle(import_path_absolute));
+				element.replace(`<!--script:${import_path_absolute}-->`, { html: true });
+				scripts_to_inline.set(import_path_absolute, { attributes: [...element.attributes].filter(([key]) => key !== "src" && key !== "kit10:inline") });
+			}
+		}
 	} });
-	rewriter.on("link", { element(node) {
-		const import_path = node.getAttribute("href");
-		if (import_path) node.setAttribute("href", absolutePath(dir, import_path));
+	rewriter.on("link", { element(element) {
+		const import_path = element.getAttribute("href");
+		if (import_path) element.setAttribute("href", absolutePath(dir, import_path));
 	} });
 	rewriter.write(textEncoder.encode(contents));
 	rewriter.end();
+	await Promise.all(promises);
+	for (const [inlined_path, inlined_options] of scripts_to_inline) {
+		const inlined_contents = inlined.get(inlined_path);
+		let script_html = `<script data-src="${inlined_path}"`;
+		for (const [key, value] of inlined_options.attributes) script_html += ` ${key}="${escapeAttribute(value)}"`;
+		script_html += `>${inlined_contents}<\/script>`;
+		result = result.replace(`<!--script:${inlined_path}-->`, script_html);
+	}
 	return {
 		is_full_page: first_tag_name === "html",
 		kit10_head,
@@ -419,13 +471,13 @@ function templatePlugin() {
 			async handler(html, context) {
 				if (!is_prod) routed_paths = getRoutedPaths(getRoutes());
 				if (!routed_paths.has(context.filename)) return;
-				const htmlContent = rewriteHtml(context.filename, html);
+				const htmlContent = await rewriteHtml(context.filename, html);
 				html = htmlContent.html;
 				if (htmlContent.is_full_page) return html;
 				if (!templateParts || !is_prod) {
 					let template_html = await readTemplate();
 					if (template_html === null) throw new Error(`Requested template, but ${TEMPLATE_PATH_ABSOLUTE} not found.`);
-					template_html = rewriteHtml(TEMPLATE_PATH_ABSOLUTE, template_html).html;
+					template_html = (await rewriteHtml(TEMPLATE_PATH_ABSOLUTE, template_html)).html;
 					templateParts = splitTemplate(template_html);
 				}
 				return wrapInTemplate(templateParts, htmlContent);

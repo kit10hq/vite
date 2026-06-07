@@ -24,7 +24,7 @@ export function devRoutePlugin(): Plugin {
 						html,
 						url_pathname,
 					);
-					const rewrite = rewriteHtml(route_html.path, html);
+					const rewrite = await rewriteHtml(route_html.path, html);
 					html = rewrite.html;
 
 					return htmlResponse(html);
