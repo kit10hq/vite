@@ -5,8 +5,11 @@ type CssPreprocessors = Exclude<
 	UserConfig['css'],
 	undefined
 >['preprocessorOptions'];
-
-type Plugins = Exclude<UserConfig['plugins'], undefined>;
+export type Kit10Plugin = {
+	kit10: true;
+	htmlPreprocessors?: unknown[];
+	vitePlugins?: VitePlugin[];
+};
 
 export const is_prod: boolean = process.argv[2] === 'build';
 
@@ -16,7 +19,7 @@ const configModule = await import(
 
 export type Config = {
 	/** List of plugins to use. */
-	plugins?: Plugins;
+	plugins?: (Kit10Plugin | VitePlugin | VitePlugin[])[];
 	/** Build options. */
 	build?: {
 		/** If file size is within this threshold, it will be inlined into page. */
@@ -30,6 +33,16 @@ export type Config = {
 	};
 };
 export const config = configModule.default as Config;
+export const vitePlugins: Exclude<UserConfig['plugins'], undefined> =
+	config.plugins
+		? config.plugins.map((plugin) => {
+				if ('kit10' in plugin) {
+					return plugin.vitePlugins;
+				}
+
+				return plugin;
+			})
+		: [];
 
 export const source_path: string = nodePath.join(process.cwd(), 'src');
 

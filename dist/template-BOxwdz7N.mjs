@@ -6,6 +6,10 @@ import { randomUUID } from "node:crypto";
 //#region src/build/options.ts
 const is_prod = process.argv[2] === "build";
 const config = (await import(nodePath.join(process.cwd(), "kit10.config.js"))).default;
+const vitePlugins = config.plugins ? config.plugins.map((plugin) => {
+	if ("kit10" in plugin) return plugin.vitePlugins;
+	return plugin;
+}) : [];
 const source_path = nodePath.join(process.cwd(), "src");
 const output_path = nodePath.join(process.cwd(), "dist");
 const output_static_path = nodePath.join(output_path, "static");
@@ -351,4 +355,4 @@ function templatePlugin() {
 	};
 }
 //#endregion
-export { configPlugin as a, output_static_path as c, rewriteHtml as i, source_path as l, routes as n, config as o, getRoutes as r, output_path as s, templatePlugin as t };
+export { configPlugin as a, output_static_path as c, rewriteHtml as i, source_path as l, routes as n, config as o, getRoutes as r, output_path as s, templatePlugin as t, vitePlugins as u };

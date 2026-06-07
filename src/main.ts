@@ -13,4 +13,4 @@ if (command === 'dev') {
 	process.exit(1);
 }
 
-export type { Config } from './build/options.js';
+export type { Config, Kit10Plugin } from './build/options.js';

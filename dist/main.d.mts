@@ -1,10 +1,14 @@
-import { UserConfig } from "vite";
+import { Plugin, UserConfig } from "vite";
 
 //#region src/build/options.d.ts
 type CssPreprocessors = Exclude<UserConfig["css"], undefined>["preprocessorOptions"];
-type Plugins = Exclude<UserConfig["plugins"], undefined>;
+type Kit10Plugin = {
+  kit10: true;
+  htmlPreprocessors?: unknown[];
+  vitePlugins?: Plugin[];
+};
 type Config = {
-  /** List of plugins to use. */plugins?: Plugins; /** Build options. */
+  /** List of plugins to use. */plugins?: (Kit10Plugin | Plugin | Plugin[])[]; /** Build options. */
   build?: {
     /** If file size is within this threshold, it will be inlined into page. */html_inline_threshold?: number;
     css_preprocessors?: CssPreprocessors;
@@ -14,4 +18,4 @@ type Config = {
   };
 };
 //#endregion
-export type { Config };
+export type { Config, Kit10Plugin };

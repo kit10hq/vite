@@ -36,7 +36,7 @@ await build({
 	plugins: [
 		configPlugin(),
 		templatePlugin(),
-		...(buildOptions.config.plugins ?? []),
+		...buildOptions.vitePlugins,
 		htmlMinifyPlugin(),
 		gzipPlugin(),
 	],

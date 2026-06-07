@@ -12,7 +12,7 @@ const server = await createServer({
 		configPlugin(),
 		templatePlugin(),
 		devRoutePlugin(),
-		...(buildOptions.config.plugins ?? []),
+		...buildOptions.vitePlugins,
 	],
 	server: {
 		port: buildOptions.config.server?.port,
