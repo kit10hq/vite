@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 const is_prod = process.argv[2] === "build";
 const config = (await import(nodePath.join(process.cwd(), "kit10.config.js"))).default;
 const vitePlugins = config.plugins ? config.plugins.map((plugin) => {
-	if ("kit10" in plugin) return plugin.vitePlugins;
+	if (plugin && "kit10" in plugin) return plugin.vitePlugins;
 	return plugin;
 }) : [];
 const source_path = nodePath.join(process.cwd(), "src");

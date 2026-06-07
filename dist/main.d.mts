@@ -1,15 +1,19 @@
-import { Plugin, UserConfig } from "vite";
+import { UserConfig } from "vite";
 
 //#region src/build/options.d.ts
 type Promisable<T> = T | Promise<T>;
 type CssPreprocessors = Exclude<UserConfig["css"], undefined>["preprocessorOptions"];
+type VitePlugin = Exclude<UserConfig["plugins"], undefined>[number];
 type Kit10Plugin = {
   kit10: true;
-  htmlPreprocessor?: (path: string) => Promisable<string>;
-  vitePlugins?: Plugin[];
+  htmlPreprocessor?: {
+    filter: RegExp;
+    transform: (path: string) => Promisable<string>;
+  };
+  vitePlugins?: VitePlugin[];
 };
 type Config = {
-  /** List of plugins to use. */plugins?: (Kit10Plugin | Plugin | Plugin[])[]; /** Build options. */
+  /** List of plugins to use. */plugins?: (Kit10Plugin | VitePlugin)[]; /** Build options. */
   build?: {
     /** If file size is within this threshold, it will be inlined into page. */html_inline_threshold?: number;
     css_preprocessors?: CssPreprocessors;
