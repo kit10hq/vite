@@ -47,7 +47,10 @@
 		"type": "git",
 		"url": "git+https://github.com/kit10hq/vite.git"
 	},
-	"keywords": [],
+	"keywords": [
+		"kit10",
+		"vite"
+	],
 	"author": "Daniil Kirichenko (https://twitter.com/kirickme)",
 	"license": "MIT",
 	"bugs": {
